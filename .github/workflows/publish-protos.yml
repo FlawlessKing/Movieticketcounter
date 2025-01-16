@@ -5,26 +5,43 @@ on:
     branches:
       - main
     paths:
-      - "*.proto"
+      - "proto/**/*.proto"  # More specific path matching
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "proto/**/*.proto"  # Run on PRs too for early feedback
 
 jobs:
-  build:
+  validate-and-publish:  # More descriptive job name
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: bufbuild/buf-setup-action@v1
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          version: "latest"
+          fetch-depth: 0  # Needed for breaking change detection
+
+      - name: Setup buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.28.1"  # Pin to specific version for stability
           github_token: ${{ github.token }}
-      - uses: bufbuild/buf-lint-action@v1
+
+      - name: Lint proto files
+        uses: bufbuild/buf-lint-action@v1
         with:
           input: "proto"
-      - uses: bufbuild/buf-breaking-action@v1
+          
+      - name: Check for breaking changes
+        uses: bufbuild/buf-breaking-action@v1
         with:
           input: "proto"
-          # The 'main' branch of the GitHub repository that defines the module.
           against: "https://github.com/${GITHUB_REPOSITORY}.git#branch=main"
-      - uses: bufbuild/buf-push-action@v1
+        if: github.event_name == 'pull_request'  # Only check on PRs
+
+      - name: Push to buf.build registry
+        uses: bufbuild/buf-push-action@v1
         with:
           input: "proto"
           buf_token: ${{ secrets.BUF_TOKEN }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Only push on main branch

@@ -1,0 +1,10 @@
+Checks: >
+  *,
+  -fuchsia-*,
+  -google-runtime-references,
+  -llvm-header-guard,
+  -llvmlibc-*,
+  -modernize-use-trailing-return-type
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+FormatStyle: file 
